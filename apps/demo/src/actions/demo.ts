@@ -8,8 +8,14 @@ const schema = z.object({
   password: z.string().min(1),
 })
 
+function shouldThrow() {
+  return Math.random() > 0.5
+}
+
 export const action = createAction(schema, async (data) => {
-  console.log(data)
+  if (shouldThrow()) {
+    throw new Error("Oops! Unexpected server error")
+  }
 
   if (data.username !== "username") {
     return serverError("INVALID_USERNAME")
