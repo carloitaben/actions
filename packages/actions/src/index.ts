@@ -1,1 +1,1 @@
-export { createAction, serverError } from "./server"
+export { createAction, createActionFactory, serverError } from "./server"
