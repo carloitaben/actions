@@ -21,22 +21,19 @@ export default function Simple() {
             password: "bar",
           })
 
-          if (!("error" in result)) {
-            return alert(JSON.stringify(result, null, 2))
+          if (result.success) {
+            return alert(String(result.data.ok))
           }
 
-          switch (result.error.name) {
+          switch (result.error.cause) {
             case "VALIDATION_ERROR":
-              return alert(JSON.stringify(result.error, null, 2))
-            case "SERVER_ERROR":
-              switch (result.error.cause) {
-                case "INVALID_USERNAME":
-                  return alert("INVALID_USERNAME")
-                case "INVALID_PASSWORD":
-                  return alert("INVALID_PASSWORD")
-                default:
-                  return unreachable(result.error)
-              }
+              return alert("VALIDATION_ERROR")
+            case "INVALID_USERNAME":
+              return alert("INVALID_USERNAME")
+            case "INVALID_PASSWORD":
+              return alert("INVALID_PASSWORD")
+            default:
+              return unreachable(result.error)
           }
         })
       }
