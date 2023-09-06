@@ -1,11 +1,11 @@
 "use server"
 
-import { createAction, serverError } from "actions"
 import { z } from "zod"
+import { createAction, serverError } from "actions"
 
 const schema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
+  username: z.string().nonempty(),
+  password: z.string().nonempty(),
 })
 
 function shouldThrow() {

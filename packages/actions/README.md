@@ -2,19 +2,15 @@
 
 ## Usage
 
-### Simple
-
-```tsx
-// actions.ts
-
+```ts
 "use server"
 
-import { createAction, serverError } from "actions"
 import { z } from "zod"
+import { createAction, serverError } from "actions"
 
 const schema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
+  username: z.string().nonempty(),
+  password: z.string().nonempty(),
 })
 
 export const action = createAction(schema, async (data) => {
@@ -33,15 +29,16 @@ export const action = createAction(schema, async (data) => {
 ```
 
 ```tsx
-// page.tsx
-
 "use client"
 
 import { useTransition } from "react"
+import { action } from "./actions"
 
-import { action } from "~/actions/demo"
+function unreachable(value: never): never {
+  throw new Error(`Unreachable: ${value}`)
+}
 
-export default function Simple() {
+function Component() {
   const [isPending, startTransition] = useTransition()
 
   return (
@@ -54,22 +51,22 @@ export default function Simple() {
             password: "bar",
           })
 
-          if (!("error" in result)) {
-            return alert(JSON.stringify(result, null, 2))
+          if (result.success) {
+            return alert(result.data.ok)
           }
 
-          switch (result.error.name) {
+          switch (result.error.cause) {
             case "VALIDATION_ERROR":
-              return alert(JSON.stringify(result.error, null, 2))
-            case "SERVER_ERROR":
-              switch (result.error.cause) {
-                case "INVALID_USERNAME":
-                  return alert("INVALID_USERNAME")
-                case "INVALID_PASSWORD":
-                  return alert("INVALID_PASSWORD")
-                default:
-                  return unreachable(result.error)
-              }
+              // Code path for VALIDATION_ERROR
+              break
+            case "INVALID_USERNAME":
+              // Code path for INVALID_USERNAME
+              break
+            case "INVALID_PASSWORD":
+              // Code path for INVALID_PASSWORD
+              break
+            default:
+              return unreachable(result.error)
           }
         })
       }
@@ -79,3 +76,95 @@ export default function Simple() {
   )
 }
 ```
+
+## Recipes
+
+### Inferring values
+
+```ts
+import type { ActionData, ActionErrors } from "actions"
+import type { action } from "./actions"
+
+type ActionData = InferActionData<typeof action>
+//   ^? type ActionData = { ok: boolean; }
+
+type ActionErrors = InferActionErrors<typeof action>
+//   ^? type ActionErrors = "INVALID_USERNAME" | "INVALID_PASSWORD" | "VALIDATION_ERROR"
+```
+
+### Void actions
+
+```ts
+"use server"
+
+import { z } from "zod"
+import { createAction } from "actions"
+
+export const action = createAction(z.void(), async () => ({
+  // ...
+}))
+```
+
+### With `drizzle-zod`
+
+```ts
+"use server"
+
+import { z } from "zod"
+import { createAction } from "actions"
+import { createInsertSchema } from "drizzle-zod"
+import { users } from "./db"
+
+const insertUserSchema = createInsertSchema(users)
+
+export const action = createAction(
+  insertUserSchema.pick({
+    username: true,
+    password: true,
+  }),
+  async (user) => ({
+    // ...
+  })
+)
+```
+
+### With `ts-pattern`
+
+```tsx
+"use client"
+
+import { useTransition } from "react"
+import { match } from "ts-pattern"
+import { action } from "./actions"
+
+function Component() {
+  const [isPending, startTransition] = useTransition()
+
+  return (
+    <button
+      disabled={isPending}
+      onClick={() =>
+        startTransition(async () => {
+          const result = await action({
+            username: "foo",
+            password: "bar",
+          })
+
+          match(result)
+            .with({ error: { cause: "VALIDATION_ERROR" } }, () => {})
+            .with({ error: { cause: "INVALID_USERNAME" } }, () => {})
+            .with({ error: { cause: "INVALID_PASSWORD" } }, () => {})
+            .with({ success: true }, ({ data }) => alert(data.ok))
+            .exhaustive()
+        })
+      }
+    >
+      Run server action
+    </button>
+  )
+}
+```
+
+## License
+
+[MIT](LICENSE)

@@ -1,7 +1,6 @@
 "use client"
 
 import { useTransition } from "react"
-
 import { action } from "~/actions/demo"
 
 export function unreachable(value: never): never {
@@ -22,7 +21,7 @@ export default function Simple() {
           })
 
           if (result.success) {
-            return alert(String(result.data.ok))
+            return alert(result.data.ok)
           }
 
           switch (result.error.cause) {
